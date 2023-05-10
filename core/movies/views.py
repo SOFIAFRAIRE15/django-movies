@@ -1,5 +1,5 @@
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 
 from rest_framework import status
 from rest_framework.views import APIView
@@ -15,9 +15,14 @@ def index_movies(request):
 
 
 class MovieView(APIView):
-    def get (self, request):
-        movies = Movie.objects.all()
-        serializers = MovieSerializer(movies, many = True)
+    def get (self, request, pk = None):
+        if pk:
+            #movie = Movie.objects.get(pk=pk)
+            movie = get_object_or_404(Movie, pk=pk)
+            serializers = MovieSerializer(movie)
+        else:
+           movies = Movie.objects.all()
+           serializers = MovieSerializer(movies, many = True)
         return Response(serializers.data)
 
 
@@ -36,11 +41,25 @@ class MovieView(APIView):
 
 
 
-    def put (self, request):
-        return Response({"msg":"PUT recibido"})
+    def put (self, request, pk = None):
+        movie = get_object_or_404(Movie, pk=pk)
+        serializer = MovieSerializer(movie, data = request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status = status.HTTP_201_CREATED)
+        else: 
+             return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
   
 
-    def delete (self, request):
-        return Response({"msg":"DELETE recibido"})
+    def delete (self, request, pk = None):
+        if pk: 
+            movie = get_object_or_404(Movie, pk=pk)
+            movie.delete()
+        else:
+            return Response(
+                {"msg": "Necesitas enviar el ID de la pelicula a eliminar"},
+                status = status.HTTP_400_BAD_REQUEST
+            )
+        return Response({"msg": f"Pelicula con ID {pk} eliminada"})
 
 
